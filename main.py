@@ -17,7 +17,7 @@ BANNER = r'''
 ║                                     |___/                ║
 ║   PocketPy Vibe Coding Agent  🐍                         ║
 ║   GSoC 2026 · Python Software Foundation · PocketPy      ║
-║   Generates text/grid games for the PocketPy runtime     ║
+║   Professional Multi-File Project Mode                   ║
 ╚══════════════════════════════════════════════════════════╝
 '''
 
@@ -25,167 +25,118 @@ MENU = '''
   ┌─────────────────────────────────────────────────────┐
   │  1. New Project      Generate a game from a prompt  │
   │  2. Continue Project Improve an existing project    │
-  │  3. List Projects    Browse all projects            │
-  │  4. Project History  Iteration log for a project   │
-  │  5. View Code        Preview latest generated code  │
-  │  6. Update API Key   Hot-swap Gemini API key        │
-  │  7. Exit                                            │
+  │  3. Show History     Browse and select projects      │
+  │  4. View Code        Preview project entry point    │
+  │  5. Update API Key   Hot-swap Gemini API key        │
+  │  6. Exit                                            │
   └─────────────────────────────────────────────────────┘
 '''
 
 SEP = '─' * 58
 
-
-def _sep():
-    print(SEP)
-
-
 def display_menu():
-    '''Print the main navigation menu.'''
     print(MENU)
 
-
 def _list_projects(memory: MemoryManager):
-    '''Display a table of all known projects with status and timestamps.'''
     projects = memory.list_projects()
     if not projects:
         print('\n  No projects found yet. Create one with option 1.\n')
-        return
-
-    print(f'\n  {"ID":<28} {"Status":<16} {"Last Updated"}')
-    _sep()
-    for pid in projects:
+        return []
+    
+    print(f'\n  {"ID":<4} {"Project ID":<28} {"Status":<12} {"Last Updated"}')
+    print('  ' + '─' * 58)
+    for idx, pid in enumerate(projects):
         summary = memory.get_project_summary(pid)
-        pid_display = pid[:26] + '..' if len(pid) > 28 else pid
         status = summary['status']
         ts = summary['last_updated'][:19] if summary['last_updated'] != 'never' else 'never'
-        print(f'  {pid_display:<28} {status:<16} {ts}')
-    print(f'\n  Total: {len(projects)} project(s)\n')
+        print(f'  {idx+1:<4} {pid:<28} {status:<12} {ts}')
+    print('\n')
+    return projects
 
-
-def _show_history(memory: MemoryManager, project_id: str):
-    '''Print the full iteration history for a single project.'''
+def _show_project_history(memory: MemoryManager, project_id: str):
     history = memory.retrieve_history(project_id)
     entries = history.get('history', [])
     if not entries:
-        print(f'\n  No history found for "{project_id}".\n')
+        print(f'\n  No history for "{project_id}".\n')
         return
 
-    summary = memory.get_project_summary(project_id)
-    print(f'\n  Project  : {project_id}')
-    print(f'  Status   : {summary["status"]}')
-    print(f'  Entries  : {len(entries)}')
-    _sep()
+    print(f'\n  Project Activity Log: {project_id}')
+    print('  ' + '─' * 58)
     for idx, entry in enumerate(entries):
         ts = entry.get('timestamp', 'unknown')[:19]
         action = entry.get('action', 'unknown')
         iteration = entry.get('iteration', '?')
-        snippet = ''
-        if 'prompt_used' in entry:
-            snippet = f'  prompt: {entry["prompt_used"][:40]}…'
-        if 'error_log' in entry:
-            first_line = entry['error_log'].split('\n')[0][:50]
-            snippet = f'  err: {first_line}'
-        print(f'  [{idx:02d}] iter={iteration:<3} | {action:<12} | {ts}{snippet}')
-    print()
-
-
-def _preview_code(memory: MemoryManager, project_id: str):
-    '''Display the latest code for a project in a readable bordered block.'''
-    code = memory.get_latest_code(project_id)
-    if not code:
-        print(f'\n  No code saved for "{project_id}" yet.\n')
-        return
-    lines = code.splitlines()
-    print(f'\n  Code for "{project_id}"  ({len(lines)} lines)\n')
-    _sep()
-    # Show first 60 lines to avoid flooding the terminal
-    MAX_LINES = 60
-    for line in lines[:MAX_LINES]:
-        print(f'  {line}')
-    if len(lines) > MAX_LINES:
-        print(f'\n  … and {len(lines) - MAX_LINES} more lines.')
-        workspace_path = os.path.join('workspaces', project_id, 'main.py')
-        print(f'  Open the full file at: {workspace_path}')
-    _sep()
-    print()
-
+        print(f'  [{idx:02d}] iter={iteration:<2} | {action:<10} | {ts}')
+    print('\n  Enter code view (option 4) to see the source.\n')
 
 def main():
-    '''Entry point for the PocketPy Vibe Coding Agent CLI.'''
     print(BANNER)
-
-    custom_gemini_key = input('  Gemini API Key (press Enter to use .env value): ').strip()
-    if not custom_gemini_key:
-        custom_gemini_key = None
-
-    print('\n  Initialising agent…')
-    agent = CoreAgent(gemini_api_key=custom_gemini_key)
+    custom_gemini_key = input('  Optional Gemini API Key (Enter to skip): ').strip()
+    agent = CoreAgent(gemini_api_key=custom_gemini_key if custom_gemini_key else None)
     memory = MemoryManager()
-    print('  Agent ready.\n')
 
     while True:
         display_menu()
-        choice = input('  Select [1-7]: ').strip()
+        choice = input('  Select [1-6]: ').strip()
 
         if choice == '1':
-            project_id = input('  Project name/ID: ').strip()
-            prompt = input('  Describe your game: ').strip()
+            project_id = input('  Project name: ').strip()
+            prompt = input('  Describe your game (professional multi-file): ').strip()
             if project_id and prompt:
-                print(f'\n  Generating "{project_id}" — this may take a moment…\n')
+                print(f'\n  Agent starting Multi-File workflow for "{project_id}"...\n')
                 agent.new_project(project_id, prompt)
             else:
-                print('  Project name and prompt are both required.\n')
+                print('  Name and prompt required.\n')
 
         elif choice == '2':
-            projects = memory.list_projects()
+            projects = _list_projects(memory)
             if projects:
-                _list_projects(memory)
-            project_id = input('  Project name/ID to improve: ').strip()
-            instructions = input('  Describe the improvement: ').strip()
-            if project_id and instructions:
-                print(f'\n  Improving "{project_id}" — this may take a moment…\n')
-                agent.improve_project(project_id, instructions)
-            else:
-                print('  Project name and improvement instructions are both required.\n')
+                idx = input('  Select Project # to improve (or Enter for manually typed ID): ').strip()
+                if idx.isdigit() and 1 <= int(idx) <= len(projects):
+                    project_id = projects[int(idx)-1]
+                else:
+                    project_id = input('  Project name/ID: ').strip()
+                instructions = input('  Describe improvement: ').strip()
+                if project_id and instructions:
+                    print(f'\n  Agent starting Multi-File improvement for "{project_id}"...\n')
+                    agent.improve_project(project_id, instructions)
 
         elif choice == '3':
-            _list_projects(memory)
+            projects = _list_projects(memory)
+            if projects:
+                idx = input('  Enter Project # to view detailed history (or Enter to go back): ').strip()
+                if idx.isdigit() and 1 <= int(idx) <= len(projects):
+                    _show_project_history(memory, projects[int(idx)-1])
 
         elif choice == '4':
-            projects = memory.list_projects()
+            projects = _list_projects(memory)
             if projects:
-                _list_projects(memory)
-            project_id = input('  Project name/ID: ').strip()
-            if project_id:
-                _show_history(memory, project_id)
+                idx = input('  Enter Project # to view code: ').strip()
+                if idx.isdigit() and 1 <= int(idx) <= len(projects):
+                    project_id = projects[int(idx)-1]
+                    code = memory.get_latest_code(project_id)
+                    if code:
+                        # Find main.py for preview
+                        print(f'\n  Previewing main.py for {project_id}:')
+                        print('  ' + '─' * 58)
+                        # In new mode code is a dict stored in memory data or printed to workspace
+                        # I'll output the location for now as requested.
+                        print(f'  Full project is at: workspaces/{project_id}/')
+                        print(f'  Check src/engine.py for game logic.')
+                        print('  ' + '─' * 58 + '\n')
 
         elif choice == '5':
-            projects = memory.list_projects()
-            if projects:
-                _list_projects(memory)
-            project_id = input('  Project name/ID: ').strip()
-            if project_id:
-                _preview_code(memory, project_id)
+            new_key = input('  New Gemini API Key: ').strip()
+            if new_key and hasattr(agent.ai_provider, 'update_api_key'):
+                agent.ai_provider.update_api_key(new_key)
+                print('  ✓ Updated Key.\n')
 
         elif choice == '6':
-            new_key = input('  New Gemini API Key: ').strip()
-            if new_key:
-                if hasattr(agent.ai_provider, 'update_api_key'):
-                    agent.ai_provider.update_api_key(new_key)
-                    print('  ✓ API key updated.\n')
-                else:
-                    print('  Current provider does not support dynamic key updates.\n')
-            else:
-                print('  No key entered — unchanged.\n')
-
-        elif choice == '7':
-            print('\n  Goodbye! Happy hacking with PocketPy 🐍\n')
+            print('\n  Goodbye! Happy Coding.\n')
             break
 
         else:
-            print('  Invalid option — enter a number 1–7.\n')
-
+            print('  Invalid option.\n')
 
 if __name__ == '__main__':
     main()
