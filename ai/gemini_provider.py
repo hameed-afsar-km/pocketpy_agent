@@ -28,25 +28,15 @@ class GeminiProvider(BaseProvider):
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=user_prompt,
-                config={'system_instruction': system_prompt}
+                config={
+                    'system_instruction': system_prompt,
+                    'response_mime_type': 'application/json' # Forces strictly JSON output
+                }
             )
             return response.text
         except Exception as e:
             app_logger.error(f'Gemini API Error: {e}')
             raise e
-
-    def _extract_json(self, text: str) -> dict:
-        '''Extract the first JSON block from a markdown-formatted response or raw text.'''
-        # Find JSON boundaries
-        start = text.find('{')
-        end = text.rfind('}')
-        if start != -1 and end != -1:
-            try:
-                return json.loads(text[start:end+1])
-            except json.JSONDecodeError:
-                pass
-        # Fallback empty project structure
-        return {"main.py": "print('Failed to parse AI output as JSON')", "src/__init__.py": ""}
 
     def generate_code(self, prompt: str) -> dict:
         response = self._call_api(SYSTEM_GENERATE, f"Generate a project: {prompt}")

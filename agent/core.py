@@ -64,7 +64,11 @@ class CoreAgent:
     def improve_project(self, project_id: str, instructions: str) -> dict:
         app_logger.info(f"Improving multi-file project '{project_id}'")
         self.container.create_project(project_id)
-        existing_project = {} # Logic to build a proper project files dict from memory needed here
+        existing_project = self.memory.get_latest_project_files(project_id)
+        if not existing_project:
+            app_logger.warning(f"No existing multi-file project found for '{project_id}' — generating fresh.")
+            plan = self.planner.plan_project(instructions)
+            return self._run_loop(project_id, plan['compiled_prompt'], existing_project=None, mode='new')
         return self._run_loop(project_id, instructions, existing_project=existing_project, mode='improve')
 
     def _run_loop(self, project_id: str, prompt: str, existing_project: dict, mode: str) -> dict:
@@ -96,7 +100,7 @@ class CoreAgent:
             self.memory.save_state(project_id, {
                 'iteration': iteration,
                 'action': action_label,
-                'files': list(current_project_files.keys()),
+                'project_files': current_project_files,
                 'status': 'validating'
             })
 

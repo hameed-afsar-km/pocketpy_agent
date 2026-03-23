@@ -52,13 +52,13 @@ class MemoryManager:
             json.dump(current_data, f, indent=4)
         app_logger.info(f'Saved state for project: {project_id}')
 
-    def get_latest_code(self, project_id: str) -> str:
-        '''Return the most recently saved code string for a project.'''
+    def get_latest_project_files(self, project_id: str) -> dict:
+        '''Return the most recently saved dictionary of project files.'''
         history = self.retrieve_history(project_id).get('history', [])
         for entry in reversed(history):
-            if 'code' in entry and entry['code'].strip():
-                return entry['code']
-        return ''
+            if 'project_files' in entry and isinstance(entry['project_files'], dict):
+                return entry['project_files']
+        return {}
 
     def get_project_summary(self, project_id: str) -> dict:
         '''Return a compact summary of a project suitable for listing.
