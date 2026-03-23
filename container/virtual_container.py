@@ -66,8 +66,8 @@ class VirtualContainer:
         return ''
 
     def execute_code(self, project_id: str, filename: str = 'main.py', timeout: int = 5) -> dict:
-        '''Multi-file aware execution using exec().
-        Wraps the project path in sys.path so that 'from src import engine' works correctly.
+        '''Multi-file aware execution using subprocess.
+        Safely evaluates untrusted code with a strict timeout to prevent infinite loops.
         '''
         app_logger.info(f'Executing multi-file project {project_id}...')
         project_path = os.path.abspath(self._get_project_path(project_id))
@@ -79,43 +79,43 @@ class VirtualContainer:
         with open(file_path, 'r', encoding='utf-8') as f:
             source = f.read()
 
-        # Input guard (same as before)
-        forbidden = ['pygame', 'tkinter', 'wx', 'PyQt', 'kivy', 'threading', 'multiprocessing']
+        # Input guard (PocketPy constraints)
+        forbidden = ['pygame', 'tkinter', 'wx', 'PyQt', 'kivy', 'threading', 'multiprocessing', 'subprocess']
         for banned in forbidden:
             if f'import {banned}' in source or f'from {banned}' in source:
                 return {'success': False, 'error': f'Banned library detected: {banned}'}
 
-        old_stdout, old_stderr = sys.stdout, sys.stderr
-        old_path = sys.path.copy()
-        
-        captured_out, captured_err = io.StringIO(), io.StringIO()
-        sys.stdout, sys.stderr = captured_out, captured_err
-        
-        # Inject project path so relative imports work
-        sys.path.insert(0, project_path)
+        import subprocess
+        # Pre-seed the input stream with 'q' to naturally exit game loops
+        mock_input = b'q\n' * 50
 
-        stub_inputs = iter(['q'])
-        exec_globals = {
-            '__name__': '__main__',
-            '__file__': file_path,
-            'input': lambda _: next(stub_inputs, 'q')
-        }
-
-        success = False
         try:
-            exec(source, exec_globals)
-            success = True
-        except SystemExit:
-            success = True
-        except Exception:
-            import traceback
-            captured_err.write(traceback.format_exc())
-        finally:
-            sys.stdout, sys.stderr = old_stdout, old_stderr
-            sys.path = old_path
+            # Inject project path so relative imports work inside the subprocess context
+            env = dict(os.environ)
+            env['PYTHONPATH'] = project_path + os.pathsep + env.get('PYTHONPATH', '')
 
-        return {
-            'success': success,
-            'stdout': captured_out.getvalue(),
-            'stderr': captured_err.getvalue()
-        }
+            result = subprocess.run(
+                [sys.executable, file_path],
+                input=mock_input,
+                capture_output=True,
+                timeout=timeout,
+                env=env
+            )
+            success = result.returncode == 0
+            return {
+                'success': success,
+                'stdout': result.stdout.decode('utf-8', errors='replace'),
+                'stderr': result.stderr.decode('utf-8', errors='replace')
+            }
+        except subprocess.TimeoutExpired as e:
+            return {
+                'success': False,
+                'stdout': e.stdout.decode('utf-8', errors='replace') if e.stdout else '',
+                'stderr': f'Execution timed out after {timeout} seconds. The game loop might be infinite or missing a quit condition.'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'stdout': '',
+                'stderr': f'Execution failed: {e}'
+            }
