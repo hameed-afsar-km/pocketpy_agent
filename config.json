@@ -1,0 +1,8 @@
+{
+  "provider": "gemini",
+  "openai_model": "gpt-4o",
+  "gemini_model": "gemini-2.5-flash",
+  "ollama_model": "llama3",
+  "max_iterations": 5,
+  "execution_timeout": 5
+}
