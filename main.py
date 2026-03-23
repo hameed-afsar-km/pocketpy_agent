@@ -27,8 +27,9 @@ MENU = '''
   │  2. Continue Project Improve an existing project    │
   │  3. Show History     Browse and select projects      │
   │  4. View Code        Preview project entry point    │
-  │  5. Update API Key   Hot-swap Gemini API key        │
-  │  6. Exit                                            │
+  │  5. Run Game         Play a generated game          │
+  │  6. Update API Key   Hot-swap Gemini API key        │
+  │  7. Exit                                            │
   └─────────────────────────────────────────────────────┘
 '''
 
@@ -126,12 +127,28 @@ def main():
                         print('  ' + '─' * 58 + '\n')
 
         elif choice == '5':
+            projects = _list_projects(memory)
+            if projects:
+                idx = input('  Enter Project # to run (or Enter to cancel): ').strip()
+                if idx.isdigit() and 1 <= int(idx) <= len(projects):
+                    project_id = projects[int(idx)-1]
+                    workspace_path = os.path.join('workspaces', project_id, 'main.py')
+                    if os.path.exists(workspace_path):
+                        print(f'\n  ▶ Launching {project_id}...\n')
+                        # Use subprocess to run it interactively in the current terminal 
+                        import subprocess
+                        subprocess.run([sys.executable, workspace_path])
+                        print(f'\n  ■ Game closed.\n')
+                    else:
+                        print(f'\n  Cannot find entry point at: {workspace_path}\n')
+
+        elif choice == '6':
             new_key = input('  New Gemini API Key: ').strip()
             if new_key and hasattr(agent.ai_provider, 'update_api_key'):
                 agent.ai_provider.update_api_key(new_key)
                 print('  ✓ Updated Key.\n')
 
-        elif choice == '6':
+        elif choice == '7':
             print('\n  Goodbye! Happy Coding.\n')
             break
 
