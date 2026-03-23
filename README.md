@@ -61,11 +61,11 @@ python main.py
 ```
   1. New Project      Generate a game from a prompt
   2. Continue Project Improve an existing project
-  3. List Projects    Browse all projects with status
-  4. Project History  Iteration log for a project
-  5. View Code        Preview latest generated code (60-line window)
-  6. Run Game         Play a generated game interactively
-  7. Update API Key   Hot-swap Gemini key without restart
+  3. Run Project      Run any project
+  4. List Projects    Browse all projects
+  5. Project History  Iteration log for a project
+  6. View Code        Preview latest generated code
+  7. Update API Key   Hot-swap Gemini API key
   8. Exit
 ```
 

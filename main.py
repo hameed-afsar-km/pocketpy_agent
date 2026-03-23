@@ -25,11 +25,12 @@ MENU = '''
   ┌─────────────────────────────────────────────────────┐
   │  1. New Project      Generate a game from a prompt  │
   │  2. Continue Project Improve an existing project    │
-  │  3. Show History     Browse and select projects      │
-  │  4. View Code        Preview project entry point    │
-  │  5. Run Game         Play a generated game          │
-  │  6. Update API Key   Hot-swap Gemini API key        │
-  │  7. Exit                                            │
+  │  3. Run Project      Run any project                │
+  │  4. List Projects    Browse all projects            │
+  │  5. Project History  Iteration log for a project    │
+  │  6. View Code        Preview latest generated code  │
+  │  7. Update API Key   Hot-swap Gemini API key        │
+  │  8. Exit                                            │
   └─────────────────────────────────────────────────────┘
 '''
 
@@ -68,7 +69,7 @@ def _show_project_history(memory: MemoryManager, project_id: str):
         action = entry.get('action', 'unknown')
         iteration = entry.get('iteration', '?')
         print(f'  [{idx:02d}] iter={iteration:<2} | {action:<10} | {ts}')
-    print('\n  Enter code view (option 4) to see the source.\n')
+    print('\n  Enter code view (option 6) to see the source.\n')
 
 def main():
     print(BANNER)
@@ -78,7 +79,7 @@ def main():
 
     while True:
         display_menu()
-        choice = input('  Select [1-6]: ').strip()
+        choice = input('  Select [1-8]: ').strip()
 
         if choice == '1':
             project_id = input('  Project name: ').strip()
@@ -105,30 +106,6 @@ def main():
         elif choice == '3':
             projects = _list_projects(memory)
             if projects:
-                idx = input('  Enter Project # to view detailed history (or Enter to go back): ').strip()
-                if idx.isdigit() and 1 <= int(idx) <= len(projects):
-                    _show_project_history(memory, projects[int(idx)-1])
-
-        elif choice == '4':
-            projects = _list_projects(memory)
-            if projects:
-                idx = input('  Enter Project # to view code: ').strip()
-                if idx.isdigit() and 1 <= int(idx) <= len(projects):
-                    project_id = projects[int(idx)-1]
-                    code = memory.get_latest_code(project_id)
-                    if code:
-                        # Find main.py for preview
-                        print(f'\n  Previewing main.py for {project_id}:')
-                        print('  ' + '─' * 58)
-                        # In new mode code is a dict stored in memory data or printed to workspace
-                        # I'll output the location for now as requested.
-                        print(f'  Full project is at: workspaces/{project_id}/')
-                        print(f'  Check src/engine.py for game logic.')
-                        print('  ' + '─' * 58 + '\n')
-
-        elif choice == '5':
-            projects = _list_projects(memory)
-            if projects:
                 idx = input('  Enter Project # to run (or Enter to cancel): ').strip()
                 if idx.isdigit() and 1 <= int(idx) <= len(projects):
                     project_id = projects[int(idx)-1]
@@ -142,13 +119,35 @@ def main():
                     else:
                         print(f'\n  Cannot find entry point at: {workspace_path}\n')
 
+        elif choice == '4':
+            _list_projects(memory)
+
+        elif choice == '5':
+            projects = _list_projects(memory)
+            if projects:
+                idx = input('  Enter Project # to view detailed history (or Enter to go back): ').strip()
+                if idx.isdigit() and 1 <= int(idx) <= len(projects):
+                    _show_project_history(memory, projects[int(idx)-1])
+
         elif choice == '6':
+            projects = _list_projects(memory)
+            if projects:
+                idx = input('  Enter Project # to view code: ').strip()
+                if idx.isdigit() and 1 <= int(idx) <= len(projects):
+                    project_id = projects[int(idx)-1]
+                    print(f'\n  Previewing entry point for {project_id}:')
+                    print('  ' + '─' * 58)
+                    print(f'  Full project is at: workspaces/{project_id}/')
+                    print(f'  Check src/engine.py for game logic.')
+                    print('  ' + '─' * 58 + '\n')
+
+        elif choice == '7':
             new_key = input('  New Gemini API Key: ').strip()
             if new_key and hasattr(agent.ai_provider, 'update_api_key'):
                 agent.ai_provider.update_api_key(new_key)
                 print('  ✓ Updated Key.\n')
 
-        elif choice == '7':
+        elif choice == '8':
             print('\n  Goodbye! Happy Coding.\n')
             break
 
