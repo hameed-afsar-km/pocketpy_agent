@@ -64,8 +64,9 @@ python main.py
   3. List Projects    Browse all projects with status
   4. Project History  Iteration log for a project
   5. View Code        Preview latest generated code (60-line window)
-  6. Update API Key   Hot-swap Gemini key without restart
-  7. Exit
+  6. Run Game         Play a generated game interactively
+  7. Update API Key   Hot-swap Gemini key without restart
+  8. Exit
 ```
 
 ---
