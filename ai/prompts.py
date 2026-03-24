@@ -16,13 +16,14 @@ All internal imports must use 'from src import engine' or 'from src.config impor
 RELIABLE GRID MECHANICS (CRITICAL):
 1. GRID: Must be a list-of-lists. Use symbols like '.' for empty, '#' for wall, '@' for player.
 2. Z-LAYERING: The '@' symbol (player) must ALWAYS be printed on top of other overlapping entities.
-3. CLEAR PATHS: For games with obstacles (like Flappy Bird), ensure gaps are at least 2 blocks wide. 
-4. GAME OVER: Clear win/loss detection. Never generate a level that is impossible to beat.
+3. ZERO-FLICKER RENDERING (CRITICAL): Do NOT use `os.system('cls')` or `clear` to refresh the screen, as it causes massive flickering! Instead, use `sys.stdout.write('\033[H')` to move the cursor to the top-left and overwrite the existing lines cleanly. This creates the illusion of a smooth 30+ FPS game in the terminal.
+4. NON-BLOCKING INPUT: If possible, handle input so the game physics (gravity, bouncing) continue even when the user isn't pressing a key.
+5. GAME OVER: Clear win/loss detection. Never generate a level that is impossible to beat.
 
 STRICT CONSTRAINTS (NO LIBRARIES):
 - NO pygame, NO tkinter, NO GUI. 
 - USE ONLY: math, random, time, sys, collections, builtins.
-- ALL RENDERING must be text-based with print().
+- ALL RENDERING must be text-based with `sys.stdout.write` and `print()` in a smooth ANSI loop.
 
 OUTPUT FORMAT (MANDATORY):
 Provide your response as a valid JSON object containing the files as keys:
